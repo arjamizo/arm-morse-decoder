@@ -17,6 +17,8 @@
 						<entry flags="" kind="includePath" name="C:\arm-none-eabi-gcc-4_6\lib\gcc\arm-none-eabi\4.6.2\include"/>
 						<entry flags="" kind="includePath" name="C:\arm-none-eabi-gcc-4_6\lib\gcc\arm-none-eabi\4.6.2\include-fixed"/>
 						<entry flags="" kind="includePath" name="."/>
+						<entry flags="" kind="includePath" name="C:\CodeBlocks\MinGW\include"/>
+						<entry flags="" kind="includePath" name="C:\CodeBlocks\MinGW\lib\gcc\mingw32\4.4.1\include"/>
 						<entry flags="" kind="includePath" name="cmsis"/>
 						<entry flags="" kind="includePath" name="cmsis_boot"/>
 						<entry flags="" kind="includePath" name="GLCD"/>
@@ -39,6 +41,8 @@
 				<pathentry include="C:/arm-none-eabi-gcc-4_6/lib/gcc/arm-none-eabi/4.6.2/include" kind="inc" path="" system="true"/>
 				<pathentry include="C:/arm-none-eabi-gcc-4_6/lib/gcc/arm-none-eabi/4.6.2/include-fixed" kind="inc" path="" system="true"/>
 				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CodeBlocks/MinGW/include" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CodeBlocks/MinGW/lib/gcc/mingw32/4.4.1/include" kind="inc" path="" system="true"/>
 				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/cmsis" kind="inc" path="" system="true"/>
 				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/cmsis_boot" kind="inc" path="" system="true"/>
 				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/GLCD" kind="inc" path="" system="true"/>
