@@ -49,7 +49,7 @@ void GPIO_init() {
     GPIO_Init(GPIOB, &GPIO_InitStructure);
 }
 
-
+//
 
 int main(void) {
 	  SystemInit();
