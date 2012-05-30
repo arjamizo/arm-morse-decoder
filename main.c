@@ -31,25 +31,6 @@
 #define LED2_PIN		GPIO_Pin_1
 #define LED2_PORT 		GPIOB
 
-void putChar(char a, int replace) {
-	static int startxpos = 0, startypos = 20;
-	static int id = 0, xpos = 0, ypos = 20; //initialization is done only once.
-	static int i = 0;
-	static int rowHeight = 14;
-	static int letterWidth = 11;
-	char str[2];
-	int no_in_row = 240 / rowHeight;
-	str[0] = a;
-	str[1] = '\0';
-	ypos = (id / no_in_row) * rowHeight + startypos;
-	xpos = (id % no_in_row) * letterWidth + startxpos;
-	GUI_Text(xpos, ypos, str, Black, White - i);
-	if (!replace)
-		return;
-	id += 1;
-}
-
-
 #define TIMES(n) int _i; for(_i=0; _i<(n); ++_i)
 
 //returns if there was new turn
@@ -122,12 +103,17 @@ void RCC_Configuration(void) { //str 52 w stm micro controlers
 void GPIO_init() {
 	GPIO_InitTypeDef GPIO_InitStructure;
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE); //for keyb
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE); //for keya
 
 	GPIO_InitStructure.GPIO_Pin = USER_KEYB;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; //floating becuse they re connected to power through resitatence
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(USER_KEYB_PORT, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = USER_KEYA;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; //floating becuse they re connected to power through resitatence
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(USER_KEYA_PORT, &GPIO_InitStructure);
 	GPIO_InitStructure.GPIO_Pin = LED1_PIN | LED2_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -164,9 +150,9 @@ void NVIC_conf() {
 void LCD_DrawSquare(const int X, const int Y, const int w, const int h,
 		uint16_t color/*=White*/) {
 	int x, y;
-	for (x = X; x < X + w; ++x)
-		for (y = Y; y < Y + h; ++y) {
-			LCD_SetPoint(x, y, color);
+	for (y = Y; y < Y + h; ++y) {
+		//for (y = Y; y < Y + h; ++y) {
+			LCD_DrawLine(X, Y, X, Y+y, color);
 		}
 }
 
@@ -240,101 +226,6 @@ void TIM_Conf(void)
 	TIM_Cmd(TIM1, ENABLE);
 }
 
-char *itoaa(int value, char *buf, int base) {
-	int i=0;
-	buf[i]='\0';
-	int t=1;
-	do t*=base; while(t<=value);
-	t/=base;
-	do {
-		buf[i]='0'+value/t;
-		value-=t;
-		buf[++i]='\0';
-	} while (value!=0);
-	return buf;
-}
-
-char *itoa(int value, char *buf, int base) {
-	int i=0;
-	int len=3;
-	int b=base*base; //base^len
-	//if(value!=0)
-		for(i=0; i<len; ++i) {
-			buf[i]='0'+((value/b)%10);
-			//value-=(value/b)*b;
-			b/=base;
-			if(0)if(buf[i]=='0')
-				buf[i]=' ';
-		}
-	if(value==0) buf[len-1]='0';
-	buf[len]=0;
-	return buf;
-}
-
-void Log(const char *text, int clr, int whetherCalledFromMainLoop) {
-	#define bufLen (31)
-	static char buf[bufLen];
-	static const char *t=0;
-	static int needsUpdate=0;
-	static int offset=0;
-	static int color=Green;
-	if(text) {
-			needsUpdate=1;//(strcmp(text, t)!=0);
-			color=clr;
-			t=text;
-	}
-	if(whetherCalledFromMainLoop) {
-		if(needsUpdate) {
-			int maxheight=6*15;
-			TIMES(bufLen) buf[_i]=' ';
-			buf[bufLen-1]=0;
-			strncpy(buf, t, strlen(t));
-			GUI_Text(0, 200+offset, buf, color, Black);
-			offset+=15;
-			GUI_Text(0, 200+offset%maxheight, "#                   ", Blue, Black);
-			if(offset>=maxheight)
-				offset=0;
-			needsUpdate=0;
-		}
-	}
-}
-
-char interpretMorseFromBuffer() {
-	return 'A';
-}
-
-
-int series_total=0;
-int series_pressed=0;
-void HandlePressed(int *total, int *pressed);
-
-int inSerie=0;
-int isThisSeriePressed=0;
-
-#define morseBufferMax 31
-char morseBuffer[morseBufferMax];
-
-void writeMorseBuferOnScreen() {
-	GUI_Text(0, 290, morseBuffer, Yellow, Black);
-}
-void resetMorseBuffer() {
-	static char buf[morseBufferMax];
-	TIMES(morseBufferMax) buf[_i]=' ';
-	strncpy(morseBuffer, buf, morseBufferMax);
-	writeMorseBuferOnScreen();
-	morseBuffer[0]=' ';
-	morseBuffer[1]=0;
-	strncpy(morseBuffer, buf, morseBufferMax);
-}
-
-void addCharToMorseBuffer(char c) {
-	char buf[2];
-	buf[0]=c;
-	buf[1]=0;
-	if(strlen(morseBuffer)<morseBufferMax)
-		strcat(morseBuffer, buf);
-}
-
 const char *codes[29]=
 {"1_111___\0",
 "111_1_1_1___\0",
@@ -395,73 +286,9 @@ char letters[27]={
 ' ',
 ' '};
 
-const char **findNext(const char **codes, const char *beg) {
-    int res;
-    --codes;
-    do {
-        codes++;
-        res=strncmp(*codes,beg,strlen(beg));
-    } while(res!=0 && **codes!=0);
-    return codes;
-}
-
-void interpretMorseBufer();
-
-
-void HandlePressed(int *total, int *pressed) {
-
-	float percent=1.0* *pressed/(*total);
-	int countAsPressed=(percent>0.50f);
-	int hasStateChanged=(countAsPressed!=isThisSeriePressed);
-	int wasButtonReleased=!isThisSeriePressed;
-	int wasButtonPressed=isThisSeriePressed;
-	int canAddTick=(morseBuffer[strlen(morseBuffer)-1]=='4' || morseBuffer[strlen(morseBuffer)-1]==' ');
-
-	if(hasStateChanged) {
-		if (wasButtonReleased) {
-			if(inSerie==1 && !canAddTick) {
-				addCharToMorseBuffer('_');
-			} else if (inSerie==3 && !canAddTick) {
-				Log("interpret", Red, 1);
-				interpretMorseBufer();
-			} else {
-				Log("syntax error 1", Red, 1);
-				//resetMorseBuffer();
-			}
-		} else if (wasButtonPressed) {
-			if(canAddTick) {
-				Log("syntax error 2", Red, 1);
-				//resetMorseBuffer();
-			}
-			if(inSerie==1 || inSerie==1)
-				addCharToMorseBuffer('0'+inSerie);
-		}
-		isThisSeriePressed=!isThisSeriePressed;
-		inSerie=0;
-	}
-	if(!hasStateChanged) {
-		if(wasButtonPressed && inSerie>3) {
-			//resetMorseBuffer();
-			Log("syntax error 3", Red, 1);
-		}
-		inSerie++;
-	}
-
-	*total=0;
-	*pressed=0;
-
-}
-
 #define outputMaxSize 256
 char output[outputMaxSize];
 
-void handleDecodedString() {
-	static int lastLen=0; //tricky empting string
-	int needsUpdate=lastLen!=strlen(output);
-	if(!needsUpdate)return;
-	GUI_Text(0, 100, output, White, Black);
-	lastLen=strlen(output);
-}
 void addCharToOutput(char c) {
 	char buf[2];
 	buf[0]=c;
@@ -469,111 +296,92 @@ void addCharToOutput(char c) {
 	if(strlen(output)<outputMaxSize)
 		strcat(output, buf);
 }
-//look for morse code in table and, if morse code appears to be
-//valid - add this letter to output and erase morse buffer
-void handleMorseBuffer() {
-	char c=interpretMorseFromBuffer();
-	if(c!=0) {
-		addCharToOutput(c);
-		Log("new letter added", Cyan, 1);
-	} else {
-		Log("syntax error", Cyan, 1);
-	}
-	resetMorseBuffer();
-}
 
-char cntr[]={'-', '=', '#'};
-void shotren(int x, int y, const char *t, u16 c, u16 bk) {
-	static char buf[26];
-	int p=0;
-	buf[0]=0;
-	const char *it=t;
-	while(*it!=0) {
-		char b=*it;
-		int cnt=1;
-		if(b=='1') {
-			while(*(++it)==b && *it!=0 && cnt<3)
-				cnt++;
-			//if(b=='1')
-				buf[p++]='0'+cnt;
-		}
-		else {
-			buf[p++]=b;
-            it++;
-		}
-		buf[p]=0;
-		//if(*t!=0) t--;
-	}
-	GUI_Text(x, y, buf, c, bk);
-	//printf("%s\n", buf);
-}
+char morseBuf[256];
+char buf[200];
 
-void interpretMorseBufer() {
-	static char poss[27];
-	TIMES(27) poss[_i]=' '; poss[27-1]=0;
-	//poss[0]='c';	poss[1]='z';	poss[2]='e';poss[3]=0;
-	GUI_Text(15, 100, poss, White, Black);
-	//return;
-	int p=0;
-	poss[p++]=' ';
-	poss[p]=0;
-	const char **it=codes;
-	char buf[2];
-	buf[1]=0;
-	int cnt=1;
-	LCD_DrawSquare(4,20,(28/14)*120, 13*15,Black);
-    while (**(it=findNext(it, morseBuffer+1))!=0) {
-    	int i=it-codes;
-    	//if(i>=26) break;
-        //poss[p++]=letters[i];
-        //poss[p]=0;
-    	buf[0]=letters[i];
-    	buf[1]=0;
-    	int x=((i+1)/14)*120;
-    	int y=(i%14)*15+20;
-    	GUI_Text(x+4, y, buf, White, Black);
-    	//delay_ms(1);
-    	strncpy(buf, *it, 3);
-    	GUI_Text(x+23, y, buf, White, Black);
-    	//delay_ms(1);
-
-    	//shotren(x+23, y, *it, White, Black);
-
-    	++cnt;
-        ++it;
-    }
-	//GUI_Text(15, 100, poss, White, Black);
-}
-
-int printTable() {
-int i; i=0;
-char buf[10];
-LCD_DrawSquare(4,20,240, 13*15,Black);
-int ok=0;
+int printTable(char *morseBuf) {
+static int cnt=0;
+int i=0;
+    #ifdef STM32F103VC
+    //if(cnt%(3*26)==0)
+    	//LCD_DrawSquare(4,20,240, 13*15,Black);
+    	//delay_ms(24);
+    #endif
+int ok=-2; //nie ma zadnej nadzei na znalezienie rozwiazania
 for(i=0; i<26; ++i)
 {
 	int x=(i/14)*120;
 	int y=(i%14)*15+20;
 	buf[0]=letters[i];
 	buf[1]=0;
-	int res=(strncmp(morseBuffer+1, codes[i], strlen(morseBuffer+1))==0);
-	if(res) ok=1;
-	GUI_Text(x+4, y, buf, res?White:Black, Black);
-	strncpy(buf, codes[i]+strlen(morseBuffer)-1, 7);
-	if(strlen(buf)==0) {
-		buf[0]=' ';
-		buf[1]=0;
-	}
-	buf[7]=0;
-	GUI_Text(x+23, y, buf, res?White:Black, Black);
+	int res=strlen(morseBuf)==0 || strncmp(morseBuf, codes[i], strlen(morseBuf))==0;
+	int ncmp=(strcmp(morseBuf, codes[i])==0);
+	if(res && ncmp) ok=i; //i-ty element jest rozwiazaniem
+	if(res && ok<0) ok=-1; //jest nadal szansa
+	int werdykt=(res!=0) || (ncmp!=0);
+    int j=3;
+	#ifdef STM32F103VC
+		//if(cnt%2==0)
+			GUI_Text(x+4, y, werdykt?buf:"  ", werdykt?White:Black, Black);
+	#endif
+	strncpy(buf, codes[i]+((strlen(morseBuf)==0)?0:(strlen(morseBuf))), j);
+/*	buf[j++]='w';
+	buf[j++]='0'+werdykt;
+	buf[j++]='n';
+	buf[j++]='0'+ncmp;
+	buf[j++]='r';
+	buf[j++]='0'+res;*/
+	buf[j++]=0;
+    #ifdef STM32F103VC
+    //if(cnt%2==1)
+		//if(strlen(buf)==0)
+			TIMES(4) strcatchr(buf, ' ');
+    	GUI_Text(x+23, y, buf, werdykt?White:Black, Black);
+    #else
+	printf("werdykt=%d>letter= >%s< normalcmp=%d cmp=%d morsebuflen=%d codes[i]len=%d<",werdykt,buf,ncmp, res,strlen(morseBuf),strlen(codes[i]));
+	if(werdykt){
+		printf("%s",buf);
+        }
+	printf("\n");
+	#endif
+//if(!(i<26)) i++; else i=0;
 }
 return ok;
 }
 
-int main() {
-	output[0]=0;
-	morseBuffer[0]=' ';
-	morseBuffer[1]=' ';
+int maina() {
+	//RCC_Configuration();
+	GPIO_init();
+	while(1) {
+
+		/*if((GPIOB->IDR & USER_KEYB)) {
+			GPIO_Blink();
+			//strcat(morseBuf, '1');
+			delay_ms(1000);
+		}
+		if((GPIOC->IDR & GPIO_Pin_13)) {
+			GPIO_Blink();
+			//strcat(morseBuf, '_');
+			delay_ms(1000);
+		}*/
+		//LED2_PORT->ODR ^= LED2_PIN;
+		//LED1_PORT->ODR ^= LED1_PIN;
+		GPIO_Blink();
+		delay();
+		//GUI_Text(0, 290, morseBuf, Yellow, Black);
+		delay_ms(100);
+	}
+}
+
+void strcatchr(char* s, char c)
+{
+    int len = strlen(s);
+    s[len] = c;
+    s[len + 1] = '\0';
+}
+
+void demo() {
 	SystemInit();
 	delay_init();
 	LCD_Initializtion();
@@ -583,55 +391,80 @@ int main() {
 	RCC_Configuration();
 	GPIO_init();
 	NVIC_conf();
+	TIM_Conf();
 
 	GUI_Text(0, 0, "PTM morse decoder", White, Black);
 	GUI_Text(45, 305, "Artur Zochniak, PWR 2012", White, Black);
-	strncpy(morseBuffer, " ", 4);
-	printTable();
-	//while(1)
-	//	LCD_DrawSquare(4,20,240, 13*15,Black);
-		;
-	TIMES(4) Log(" ", Blue, 0); //just setting the text, not displaying it.
+    strcpy(morseBuf, " ");
+    printTable(morseBuf+1);
+#define strcat strcatchr
+    strcat(morseBuf, '1');delay_ms(1000);printTable(morseBuf+1);GUI_Text(0, 290, morseBuf, Yellow, Black);
+    strcat(morseBuf, '_');delay_ms(1000);printTable(morseBuf+1);GUI_Text(0, 290, morseBuf, Yellow, Black);
+    strcat(morseBuf, '1');delay_ms(1000);printTable(morseBuf+1);GUI_Text(0, 290, morseBuf, Yellow, Black);
+    strcat(morseBuf, '1');delay_ms(1000);printTable(morseBuf+1);GUI_Text(0, 290, morseBuf, Yellow, Black);
+    strcat(morseBuf, '1');delay_ms(1000);printTable(morseBuf+1);GUI_Text(0, 290, morseBuf, Yellow, Black);
+    strcat(morseBuf, '_');delay_ms(1000);printTable(morseBuf+1);GUI_Text(0, 290, morseBuf, Yellow, Black);
+    strcat(morseBuf, '_');delay_ms(1000);printTable(morseBuf+1);GUI_Text(0, 290, morseBuf, Yellow, Black);
+    strcat(morseBuf, '_');delay_ms(1000);printTable(morseBuf+1);GUI_Text(0, 290, morseBuf, Yellow, Black);
+#undef strcat
+    while(1) delay_ms(1000);
+}
+
+int main() {
+	//demo();
+	SystemInit();
+	delay_init();
+	LCD_Initializtion();
+	LCD_BackLight_Init();
+	LCD_Clear(Black);
+
+	RCC_Configuration();
+	GPIO_init();
+	NVIC_conf();
 	TIM_Conf();
-	delay_ms(1000);
+
+	GUI_Text(0, 0, "PTM morse decoder", White, Black);
+	GUI_Text(45, 305, "Artur Zochniak, PWR 2012", White, Black);
+    strcpy(morseBuf, " ");
+    strcpy(output, " ");
+	//strcatchr(output, 'b');
+	GUI_Text(0, 270, output, Green, Black);
+	//while(1);
 	while(1) {
-		int isOn = GPIOB->IDR & USER_KEYB;
-		series_total++;
-		if(isOn) series_pressed++;
-		if(proceedBar(isOn)) {
-			//HandlePressed(&series_total, &series_pressed);
-			if(1.0*series_pressed/series_total>0.5) {
-				addCharToMorseBuffer('1');
-			} else {
-				addCharToMorseBuffer('_');
+		int i,r;
+		while((r=printTable(morseBuf+1))!=-2) {
+			if(r>=0) break;
+				if(proceedBar(0)) {
+					int isOn;
+					isOn = (GPIOB->IDR & USER_KEYB);
+					if(isOn) strcatchr(morseBuf, '1');
+						else strcatchr(morseBuf, '_');
+					//if((USER_KEYA_PORT->IDR & USER_KEYA))
+					///	strcatchr(morseBuf, '_');
+					GUI_Text(0, 290, morseBuf, Yellow, Black);
+					delay_ms(30);
+				}
 			}
-			if(!printTable()) {
-				strncpy(morseBuffer, "                        ", 2);
-				//writeMorseBuferOnScreen();
-				GUI_Text(0, 290, morseBuffer, Yellow, Black);
-				morseBuffer[1]=0;
-			}
-			series_total=0;
-			series_pressed=0;
+		if(r==-2) {
+			strcpy(morseBuf, "                        ");
+			GUI_Text(0, 290, morseBuf, Yellow, Black);
+			strcpy(morseBuf, " ");
 		}
-		goto skip;
 
-		char buf[20];
-		itoa(series_total, buf, 10);
-		GUI_Text(200,30,buf, White, Black);
-		itoa(series_pressed, buf, 10);
-		GUI_Text(200,30+13,buf, Red, Black);
-
-		itoa(inSerie, buf, 10);
-		strcat(buf, " repeats of ");
-		strcat(buf, isThisSeriePressed?"pressed ":"released");
-		GUI_Text(10, 15, buf, isThisSeriePressed?Red:Green, Black);
-
-
-		//handleDecodedString();
-		skip:
-		writeMorseBuferOnScreen();
-		delay_ms(25);
+		if (r>=0) {
+			//strcatchr(output, letters[r]);
+			//strcatchr(output, 'r');
+			//strcatchr(output, 'r');
+			//strcatchr(output, '0'+(r/10));
+			//strcatchr(output, '0'+(r%10));
+			//GUI_Text(0, 270, output, Green, Black);
+			strcatchr(output, letters[r]);
+			GUI_Text(0, 270, output, Green, Black);
+			strcpy(morseBuf, "                        ");
+			GUI_Text(0, 290, morseBuf, Yellow, Black);
+			strcpy(morseBuf, " ");
+			//delay(1000);
+		}
 	}
 	return 0;
 }
