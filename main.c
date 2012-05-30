@@ -59,20 +59,25 @@ int proceedBar(int isPressed) {
 	static const int barWidth = 90;
 	static int bar=0;
 	static int which=0;
+	static int first=1;
 	int h=5;
 	int i;
-	if (bar>barWidth/2) {
+	if (bar>barWidth/2 || first) {
 		bar = 0;
 		for(i=h;i>=0; --i)
 			LCD_DrawLine(barx, bary+i, barx + barWidth, bary+i, Green);
-		return 1;
+		if(first) {
+			first=0;
+			return 0;
+		} else {
+			return 1;
+		}
 	} else {
 		for(i=h;i>=0; --i) LCD_SetPoint(barx + bar, bary+i, Black);
 		for(i=h;i>=0; --i) LCD_SetPoint(barx + barWidth-bar, bary+i, Black);
 		++bar;
 		return 0;
 	}
-
 }
 
 #include "stm32f10x_flash.h"
@@ -540,21 +545,29 @@ void interpretMorseBufer() {
 	//GUI_Text(15, 100, poss, White, Black);
 }
 
-void printTable() {
+int printTable() {
 int i; i=0;
 char buf[10];
 LCD_DrawSquare(4,20,240, 13*15,Black);
-//for(i=0; i<4; ++i)
+int ok=0;
+for(i=0; i<26; ++i)
 {
 	int x=(i/14)*120;
 	int y=(i%14)*15+20;
 	buf[0]=letters[i];
 	buf[1]=0;
-	int res=strncmp(morseBuffer+1, codes[i], strlen(morseBuffer+1))==0;
-	GUI_Text(x+4, y, buf, res?White:Black, res?Black:White);
-	strncpy(morseBuffer, codes[i], 4);
-	GUI_Text(x+23, y, buf, res?White:Black, res?Black:White);
+	int res=(strncmp(morseBuffer+1, codes[i], strlen(morseBuffer+1))==0);
+	if(res) ok=1;
+	GUI_Text(x+4, y, buf, res?White:Black, Black);
+	strncpy(buf, codes[i]+strlen(morseBuffer)-1, 7);
+	if(strlen(buf)==0) {
+		buf[0]=' ';
+		buf[1]=0;
+	}
+	buf[7]=0;
+	GUI_Text(x+23, y, buf, res?White:Black, Black);
 }
+return ok;
 }
 
 int main() {
@@ -570,16 +583,17 @@ int main() {
 	RCC_Configuration();
 	GPIO_init();
 	NVIC_conf();
-	TIM_Conf();
 
 	GUI_Text(0, 0, "PTM morse decoder", White, Black);
 	GUI_Text(45, 305, "Artur Zochniak, PWR 2012", White, Black);
-	strncpy(morseBuffer, " 11", 4);
-	interpretMorseBufer();
-	while(1)
+	strncpy(morseBuffer, " ", 4);
+	printTable();
+	//while(1)
 	//	LCD_DrawSquare(4,20,240, 13*15,Black);
 		;
 	TIMES(4) Log(" ", Blue, 0); //just setting the text, not displaying it.
+	TIM_Conf();
+	delay_ms(1000);
 	while(1) {
 		int isOn = GPIOB->IDR & USER_KEYB;
 		series_total++;
@@ -591,12 +605,12 @@ int main() {
 			} else {
 				addCharToMorseBuffer('_');
 			}
-			const char **it=codes;
-			//if(**(it=findNext(it, morseBuffer+1))!=0) {
-			//	resetMorseBuffer();
-			//}
-			//interpretMorseBufer();
-			printTable();
+			if(!printTable()) {
+				strncpy(morseBuffer, "                        ", 2);
+				//writeMorseBuferOnScreen();
+				GUI_Text(0, 290, morseBuffer, Yellow, Black);
+				morseBuffer[1]=0;
+			}
 			series_total=0;
 			series_pressed=0;
 		}
