@@ -40,15 +40,15 @@
 				<pathentry include="C:/arm-none-eabi-gcc-4_6/arm-none-eabi/include" kind="inc" path="" system="true"/>
 				<pathentry include="C:/arm-none-eabi-gcc-4_6/lib/gcc/arm-none-eabi/4.6.2/include" kind="inc" path="" system="true"/>
 				<pathentry include="C:/arm-none-eabi-gcc-4_6/lib/gcc/arm-none-eabi/4.6.2/include-fixed" kind="inc" path="" system="true"/>
-				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CooCox/CoIDE/workspace/lcd_display_stm32" kind="inc" path="" system="true"/>
 				<pathentry include="C:/CodeBlocks/MinGW/include" kind="inc" path="" system="true"/>
 				<pathentry include="C:/CodeBlocks/MinGW/lib/gcc/mingw32/4.4.1/include" kind="inc" path="" system="true"/>
-				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/cmsis" kind="inc" path="" system="true"/>
-				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/cmsis_boot" kind="inc" path="" system="true"/>
-				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/GLCD" kind="inc" path="" system="true"/>
-				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/stm_lib" kind="inc" path="" system="true"/>
-				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/stm_lib/inc" kind="inc" path="" system="true"/>
-				<pathentry include="C:/Users/Eta/Desktop/lcd_display_stm32/SysTick" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CooCox/CoIDE/workspace/lcd_display_stm32/cmsis" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CooCox/CoIDE/workspace/lcd_display_stm32/cmsis_boot" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CooCox/CoIDE/workspace/lcd_display_stm32/GLCD" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CooCox/CoIDE/workspace/lcd_display_stm32/stm_lib" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CooCox/CoIDE/workspace/lcd_display_stm32/stm_lib/inc" kind="inc" path="" system="true"/>
+				<pathentry include="C:/CooCox/CoIDE/workspace/lcd_display_stm32/SysTick" kind="inc" path="" system="true"/>
 				<pathentry kind="mac" name="__GNUC__" path="" value=""/>
 				<pathentry kind="mac" name="STM32F10X_HD" path="" value=""/>
 				<pathentry kind="mac" name="USE_STDPERIPH_DRIVER" path="" value=""/>
